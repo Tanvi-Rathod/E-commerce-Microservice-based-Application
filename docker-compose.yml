@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Product Service
+  product_service:
+    build: ./product_service
+    ports:
+      - "50051:50051"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+  # Cart Service
+  cart_service:
+    build: ./cart_service
+    ports:
+      - "50052:50052"
+    environment:
+      - MONGO_URI=${MONGO_URI}  # MongoDB Atlas connection URI
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+  # User Service
+  user_service:
+    build: ./user_service
+    ports:
+      - "50053:50053"
+    environment:
+      - MONGO_URI=${MONGO_URI}  # MongoDB Atlas connection URI
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+  # Order Service
+  order_service:
+    build: ./order_service
+    ports:
+      - "50054:50054"
+    environment:
+      - MONGO_URI=${MONGO_URI}  # MongoDB Atlas connection URI
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+  # Redis Service
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # API Gateway
+  api_gateway:
+    build: ./gateway_service
+    ports:
+      - "80:80"
+    depends_on:
+      - product_service
+      - cart_service
+      - user_service
+      - order_service
+    volumes:
+      - ./gateway_service/nginx/nginx.conf:/etc/nginx/nginx.conf
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # Grafana Service
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+networks:
+  default:
+    external:
+      name: app-network
